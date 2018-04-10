@@ -115,7 +115,7 @@ class DataSet():
                 test.append(item)
         return train, test
 
-    def get_all_sequences_in_memory(self, train_test, data_type):
+    def get_all_sequences_in_memory(self, train_test, data_type, model):
         """
         This is a mirror of our generator, but attempts to load everything into
         memory so we can train way faster.
@@ -143,13 +143,21 @@ class DataSet():
                     print("Can't find sequence. Did you generate them?")
                     raise()
 
+            if model == 'lateFusion':
+                sequence = [sequence[0], sequence[14]]
+            elif model == 'earlyFusion':
+                sequence = sequence[0:10]
+            elif model == 'slowFusion':
+                sequence = sequence[0:10]
+
+            y_res = self.get_class_one_hot(row[1])
             X.append(sequence)
-            y.append(self.get_class_one_hot(row[1]))
+            y.append(y_res)
 
         return np.array(X), np.array(y)
 
     @threadsafe_generator
-    def frame_generator(self, batch_size, train_test, data_type):
+    def frame_generator(self, batch_size, train_test, data_type, model):
         """Return a generator that we can use to train on. There are
         a couple different things we can return:
 
@@ -180,21 +188,16 @@ class DataSet():
 
                     # Build the image sequence
                     sequence = self.build_image_sequence(frames)
-                    print(sequence)
+
                 else:
                     # Get the sequence from disk.
                     sequence = self.get_extracted_sequence(data_type, sample)
 
                     if sequence is None:
                         raise ValueError("Can't find sequence. Did you generate them?")
+
                 if model == 'singleFrame':
                     sequence = np.squeeze(sequence, 0)
-                elif model == 'lateFusion':
-                    sequence = np.concatenate(sequence[0], sequence[14])
-                elif model == 'earlyFusion':
-                    sequence = sequence[0:10]
-                elif model == 'slowFusion':
-                    sequence = sequence[0:10]
 
                 # sequence = np.squeeze(sequence, axis=0)
                 X.append(sequence)
@@ -204,8 +207,6 @@ class DataSet():
 
     def build_image_sequence(self, frames):
         """Given a set of frames (filenames), build our sequence."""
-        '''for x in frames:
-            return process_image(x, self.image_shape)     '''
         return [process_image(x, self.image_shape) for x in frames]
 
     def get_extracted_sequence(self, data_type, sample):

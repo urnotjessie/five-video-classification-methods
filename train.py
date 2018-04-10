@@ -45,20 +45,20 @@ def train(data_type, seq_length, model, saved_model=None,
     # Multiply by 0.7 to attempt to guess how much of data.data is the train set.
     steps_per_epoch = (len(data.data) * 0.7) // batch_size
 
-    if load_to_memory:
+    if load_to_memory or model == 'lateFusion':
         # Get data.
-        X, y = data.get_all_sequences_in_memory('train', data_type)
-        X_test, y_test = data.get_all_sequences_in_memory('test', data_type)
+        X, y = data.get_all_sequences_in_memory('train', data_type, model)
+        X_test, y_test = data.get_all_sequences_in_memory('test', data_type, model)
     else:
         # Get generators.
-        generator = data.frame_generator(batch_size, 'train', data_type)
-        val_generator = data.frame_generator(batch_size, 'test', data_type)
+        generator = data.frame_generator(batch_size, 'train', data_type, model)
+        val_generator = data.frame_generator(batch_size, 'test', data_type, model)
 
     # Get the model.
     rm = ResearchModels(len(data.classes), model, seq_length, saved_model)
 
     # Fit!
-    if load_to_memory:
+    if load_to_memory or model == 'lateFusion':
         # Use standard fit.
         rm.model.fit(
             X,
@@ -95,7 +95,7 @@ def main():
     if model == 'singleFrame':
         seq_length = 1
     elif model == 'lateFusion':
-        seq_length = 2
+        seq_length = 15
     elif model == 'earlyFusion':
         seq_length = 10
     elif model == 'slowFusion':

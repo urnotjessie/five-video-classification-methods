@@ -3,11 +3,13 @@ A collection of models we'll use to attempt to classify videos.
 """
 from keras.layers import Dense, Flatten, Dropout, ZeroPadding3D
 from keras.layers.recurrent import LSTM
-from keras.models import Sequential, load_model
+from keras.models import Sequential, load_model, Model
 from keras.optimizers import Adam, RMSprop
 from keras.layers import core
+from keras.layers import concatenate
 from keras.layers import  Input
 import keras.backend as bk
+from  keras.layers import merge
 from keras.layers.wrappers import TimeDistributed
 from keras.layers import normalization
 from keras.layers.convolutional import (Conv2D, MaxPooling3D, Conv3D,
@@ -256,7 +258,7 @@ class ResearchModels():
         return model
 
 
-    def singleFrame(self, model):
+    def singleFrame(self):
         model = Sequential()
         #model.add(core.Reshape((80, 80, 3), input_shape=self.input_shape))
         model.add(Conv2D(kernel_size=11, filters=96, strides=(3,3), padding='same', activation='relu', input_shape=self.input_shape))
@@ -269,17 +271,48 @@ class ResearchModels():
         model.add(Conv2D(kernel_size=3, filters=384, strides=(1, 1), padding='same', activation='relu'))
         model.add(Conv2D(kernel_size=3, filters=256, strides=(1, 1), padding='same', activation='relu'))
         model.add(MaxPooling2D(pool_size=2, strides=(2, 2)))
-        #model.add(Flatten())
-        #model.add(Dense(4096, activation='relu'))
-        #model.add(Dense(4096, activation='relu'))
-        #model.add(Dense(self.nb_classes, activation='softmax'))
+        model.add(Flatten())
+        model.add(Dense(4096, activation='relu'))
+        model.add(Dense(4096, activation='relu'))
+        model.add(Dense(self.nb_classes, activation='softmax'))
         return model
 
     def lateFusion(self):
-        model = Sequential()
-        Input1 = Input(shape=(80, 80, 3))
-        x1 = self.singleFrame(self, model)
-        Input2 = Input(shape=(80, 80, 3))
+        input1 = Input(shape=(80, 80, 3))
+        input2 = Input(shape=(80, 80, 3))
 
-        model.add(Conv2D(kernel_size=11, filters=96, strides=(3,3), padding='same', activation='relu', input_shape=self.input_shape))
+        x = Conv2D(kernel_size=11, filters=96, strides=(3, 3), padding='same', activation='relu')(input1)
+        x = normalization.BatchNormalization()(x)
+        x = MaxPooling2D(pool_size=2, strides=(2, 2))(x)
+        x = (Conv2D(kernel_size=5, filters=256, strides=(1, 1), padding='same', activation='relu'))(x)
+        x = (normalization.BatchNormalization())(x)
+        x = (MaxPooling2D(pool_size=2, strides=(2, 2)))(x)
+        x = (Conv2D(kernel_size=3, filters=384, strides=(1, 1), padding='same', activation='relu'))(x)
+        x = (Conv2D(kernel_size=3, filters=384, strides=(1, 1), padding='same', activation='relu'))(x)
+        x = (Conv2D(kernel_size=3, filters=256, strides=(1, 1), padding='same', activation='relu'))(x)
+        x = (MaxPooling2D(pool_size=2, strides=(2, 2)))(x)
+
+        y = Conv2D(kernel_size=11, filters=96, strides=(3, 3), padding='same', activation='relu')(input2)
+        y = normalization.BatchNormalization()(y)
+        y = MaxPooling2D(pool_size=2, strides=(2, 2))(y)
+        y = (Conv2D(kernel_size=5, filters=256, strides=(1, 1), padding='same', activation='relu'))(y)
+        y = (normalization.BatchNormalization())(y)
+        y = (MaxPooling2D(pool_size=2, strides=(2, 2)))(y)
+        y = (Conv2D(kernel_size=3, filters=384, strides=(1, 1), padding='same', activation='relu'))(y)
+        y = (Conv2D(kernel_size=3, filters=384, strides=(1, 1), padding='same', activation='relu'))(y)
+        y = (Conv2D(kernel_size=3, filters=256, strides=(1, 1), padding='same', activation='relu'))(y)
+        y = (MaxPooling2D(pool_size=2, strides=(2, 2)))(y)
+
+
+        merge = concatenate([x, y])
+        merge = Flatten()(merge)
+        merge = (Dense(4096, activation='relu'))(merge)
+        merge = (Dense(4096, activation='relu'))(merge)
+        merge = (Dense(self.nb_classes, activation='softmax'))(merge)
+        model = Model(inputs=[input1, input2], outputs= merge)
+
+
         return model
+
+
+
