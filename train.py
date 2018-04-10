@@ -84,16 +84,25 @@ def main():
     """These are the main training settings. Set each before running
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
-    model = 'lstm'
+    model = 'lateFusion'
     saved_model = None  # None or weights file
-    class_limit = None  # int, can be 1-101 or None
-    seq_length = 40
+    class_limit = 2  # int, can be 1-101 or None
+    seq_length = 1
     load_to_memory = False  # pre-load the sequences into memory
     batch_size = 32
     nb_epoch = 1000
 
+    if model == 'singleFrame':
+        seq_length = 1
+    elif model == 'lateFusion':
+        seq_length = 2
+    elif model == 'earlyFusion':
+        seq_length = 10
+    elif model == 'slowFusion':
+        seq_length = 10
+
     # Chose images or features and image shape based on network.
-    if model in ['conv_3d', 'c3d', 'lrcn']:
+    if model in ['conv_3d', 'c3d', 'lrcn', 'singleFrame', 'lateFusion']:
         data_type = 'images'
         image_shape = (80, 80, 3)
     elif model in ['lstm', 'mlp']:

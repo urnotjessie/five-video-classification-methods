@@ -141,7 +141,7 @@ class DataSet():
 
                 if sequence is None:
                     print("Can't find sequence. Did you generate them?")
-                    raise
+                    raise()
 
             X.append(sequence)
             y.append(self.get_class_one_hot(row[1]))
@@ -180,13 +180,23 @@ class DataSet():
 
                     # Build the image sequence
                     sequence = self.build_image_sequence(frames)
+                    print(sequence)
                 else:
                     # Get the sequence from disk.
                     sequence = self.get_extracted_sequence(data_type, sample)
 
                     if sequence is None:
                         raise ValueError("Can't find sequence. Did you generate them?")
+                if model == 'singleFrame':
+                    sequence = np.squeeze(sequence, 0)
+                elif model == 'lateFusion':
+                    sequence = np.concatenate(sequence[0], sequence[14])
+                elif model == 'earlyFusion':
+                    sequence = sequence[0:10]
+                elif model == 'slowFusion':
+                    sequence = sequence[0:10]
 
+                # sequence = np.squeeze(sequence, axis=0)
                 X.append(sequence)
                 y.append(self.get_class_one_hot(sample[1]))
 
@@ -194,6 +204,8 @@ class DataSet():
 
     def build_image_sequence(self, frames):
         """Given a set of frames (filenames), build our sequence."""
+        '''for x in frames:
+            return process_image(x, self.image_shape)     '''
         return [process_image(x, self.image_shape) for x in frames]
 
     def get_extracted_sequence(self, data_type, sample):
@@ -230,7 +242,6 @@ class DataSet():
 
             if sequence is None:
                 raise ValueError("Can't find sequence. Did you generate them?")
-
         return sequence
 
     @staticmethod
